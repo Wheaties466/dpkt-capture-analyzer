@@ -1,5 +1,12 @@
 #!/usr/bin/env python
-
+"""
+This supports python2.7 should also work on python2.6
+The only dependency needed should be dpkt which can be installed with
+for py2.7
+pip install dpkt
+for py2.6
+pip install dpkt==1.8.8
+"""
 import dpkt
 import datetime
 import socket
@@ -34,22 +41,25 @@ def print_packets(pcap):
             continue
 
         ip = eth.data
+        if isinstance(ip.data, dpkt.icmp.ICMP):
+            continue
+
+        tcp = ip.data
 
         # Pull out fragment information (flags and offset all packed into off field, so use bitmasks)
         do_not_fragment = bool(ip.off & dpkt.ip.IP_DF)
         more_fragments = bool(ip.off & dpkt.ip.IP_MF)
         fragment_offset = ip.off & dpkt.ip.IP_OFFMASK
 
-        sess_index.append(inet_to_str(ip.src))
-        sess_index_dip.append(inet_to_str(ip.dst))
+        sess_index.append(inet_to_str(ip.src) + ':' + str(tcp.sport))
+        sess_index_dip.append(inet_to_str(ip.dst) + ':' + str(tcp.dport))
     sip = Counter(sess_index).most_common(5)
     dip = Counter(sess_index_dip).most_common(5)
     print "5 most common source IPs in capture"
     print sip
     print "5 most common dest IPs in capture"
     print dip
-    print "total number of packets"
-    print len(sess_index)
+    print "Total number of packets in capture: " + str(len(sess_index))
 
 def test():
     """Open up a test pcap file and print out the packets"""
